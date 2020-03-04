@@ -1,65 +1,54 @@
-#define A2 A2Methods_Array2
+#include <string.h>
 
-typedef void *A2; // an unknown type that represents a 2D array of 'cells'
+#include <a2blocked.h>
+#include "uarray2b.h"
 
-typedef void A2Methods_Object; // an unknown sequence of bytes in memory
+// define a private version of each function in A2Methods_T that we implement
 
-// (element of an array)
+typedef A2Methods_Array2 A2; // private abbreviation
 
-typedef void A2Methods_applyfun(int i, int j, A2 array2, A2Methods_Object *ptr, void *cl);
+static A2 new(int width, int height, int size) {
+  return UArray2b_new_64K_block(width, height, size);
+}
 
-typedef void A2Methods_mapfun(A2 array2, A2Methods_applyfun apply, void *cl);
+static A2 new_with_blocksize(int width, int height, int size, int blocksize) {
+  return UArray2b_new(width, height, size, blocksize);
+}
 
-typedef struct A2Methods_T { // operations on 2D arrays
-// it is a checked run-time error to pass a NULL 2D array to any function,
-// and except as noted, a NULL function pointer is an *unchecked* r. e.
+static void a2free (A2 *array2p) {
+  UArray2b_free((UArray2b_T *)array2p);
+}
 
-A2 (*new)(int width, int height, int size);
-// creates a distinct 2D array of memory cells, each of the given 'size'
-// each cell is uninitialized
-// if the array is blocked, uses a default block size
+static int width    (A2 array2) { return UArray2b_width    (array2); }
+static int height   (A2 array2) { return UArray2b_height   (array2); }
+static int size     (A2 array2) { return UArray2b_size     (array2); }
+static int blocksize(A2 array2) { return UArray2b_blocksize(array2); }
 
-A2 (*new_with_blocksize)(int width, int height, int size, int blocksize);
-// creates a distinct 2D array of memory cells, each of the given 'size'
-// each cell is uninitialized
-// if the array is blocked, the block size given is the number of cells
-// along one side of a block; otherwise 'blocksize' is ignored
+static A2Methods_Object *at(A2 array2, int i, int j) {
+  return UArray2b_at(array2, i, j);
+}
 
-void (*free)(A2 *array2p);
-// frees *array2p and overwrites the pointer with NULL
+typedef void applyfun(int i, int j, UArray2b_T array2b, void *elem, void *cl);
 
-// observe properties of the array
-int (*width) (A2 array2);
-int (*height) (A2 array2);
-int (*size) (A2 array2);
-int (*blocksize)(A2 array2); // for an unblocked array, returns 1
+static void map_block_major (A2 array2, A2Methods_applyfun apply, void *cl) {
+  UArray2b_map(array2, (applyfun*)apply, cl);
+}
 
-A2Methods_Object *(*at)(A2 array2, int i, int j);
-// returns a pointer to the object in column i, row j
-// (checked runtime error if i or j is out of bounds)
-// mapping functions
+static struct A2Methods_T array2_methods_blocked_struct = {
+  new,
+  new_with_blocksize,
+  a2free,
+  width,
+  height,
+  size,
+  blocksize,
+  at,
+  NULL, // map_row_major
+  NULL, // map_col_major
+  map_block_major,
+  map_block_major, // map_default
+};
 
-void (*map_row_major) (A2 array2, A2Methods_applyfun apply, void *cl);
-void (*map_col_major) (A2 array2, A2Methods_applyfun apply, void *cl);
-void (*map_block_major)(A2 array2, A2Methods_applyfun apply, void *cl);
-void (*map_default) (A2 array2, A2Methods_applyfun apply, void *cl);
-// each mapping function visits every cell in array2, and for each
-// cell it calls 'apply' with these arguments:
-// i, the column index of the cell
-// j, the row index of the cell
-// array2, the array passed to the mapping function
-// cell, a pointer to the cell
-// cl, the closure pointer passed to the mapping function
-//
-// These functions differ only in the *order* in which they visit cells:
-// - row_major visits each row before the next, in order of increasing
-// row index; within a row, column numbers increase
-// - col_major visits each column before the next, in order of
-// increasing column index; within a column, row numbers increase
-// - block_major visits each block before the next; order of
-// blocks and order of cells within a block is not specified
-// - map_default uses a default order that has good locality
-//
-// In any record, map_block_major may be NULL provided that
-// map_row_major and map_col_major are not NULL, and vice versa.
-} *A2Methods_T;
+// finally the payoff: here is the exported pointer to the struct
+
+A2Methods_T array2_methods_blocked = &array2_methods_blocked_struct;

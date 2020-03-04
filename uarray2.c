@@ -50,25 +50,26 @@ int UArray2_size(T uarray2) {
         return uarray2->size;
 }
 
-void UArray2_map_row_major(T uarray2, void apply(void *p, int bit, void *cl), void *cl) {
+void UArray2_map_row_major(T uarray2, void apply(int i, int j, T uarray2, void *elem, void *cl), void *cl) {
 	assert(uarray2);
 	int *n;
-	Array_T arr = *(uarray2->array);
-	for(int i=0; i<(arr->length); i++){
-		n = (int *)(arr->array + (i * uarray2->size));
-		apply(n, i, cl);
+	for(int i=0; i<uarray2->height; i++){
+		for(int j=0; j<uarray2->width; j++){
+			n = UArray2_at(uarray2, i, j); 
+			apply(i, j, uarray2, n, cl);
+		}
 	}
 	return;
 }
 
-void UArray2_map_col_major(T uarray2, void apply(void *p, int bit, void *cl), void *cl) {
+void UArray2_map_col_major(T uarray2, void apply(int i, int j, T uarray2, void *elem, void *cl), void *cl) {
   	assert(uarray2);
   	int *n;
 	Array_T arr = *(uarray2->array);
 	for(int i=0; i<uarray2->width; i++){
 		for(int j=0; j<uarray2->height; j++){
 			n = (int *)(arr->array + (j * uarray2->size * uarray2->width) + (i * uarray2->size));
-			apply(n, ((j * uarray2->width) + i), cl);
+			apply(i, j, uarray2, n, cl);
 		}
 	}
 	return;

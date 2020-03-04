@@ -29,9 +29,9 @@ extern void *UArray2_at (T uarray2, int i, int j);
 // returns a void pointer to the memory location within a given UArray2_T
 // that represent the (i, j) index
 
-extern void UArray2_map_row_major (T uarray2, void apply(void *n, int bit, void *cl), void *cl);
+extern void UArray2_map_row_major (T uarray2, void apply(int i, int j, UArray2_T uarray2, void *elem, void *cl), void *cl);
 // maps the apply() function to each idx of a given UArray2_T in row major order
-extern void UArray2_map_col_major (T uarray2, void apply(void *n, int bit, void *cl), void *cl);
+extern void UArray2_map_col_major (T uarray2, void apply(int i, int j, UArray2_T uarray2, void *elem, void *cl), void *cl);
 // maps the apply() function to each idx of a given UArray2_T in column major order
 
 #undef T
